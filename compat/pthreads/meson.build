@@ -1,0 +1,1 @@
+pthread_dep = declare_dependency(include_directories: ['.'], c_args: ['-DPTW32_STATIC_LIB'])

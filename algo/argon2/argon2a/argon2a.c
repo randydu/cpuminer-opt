@@ -13,7 +13,7 @@
 #define MASK 8
 #define ZERO 0
 
-inline void argon_call(void *out, void *in, void *salt, int type)
+static inline void argon_call(void *out, void *in, void *salt, int type)
 {
 	argon2_context context;
 

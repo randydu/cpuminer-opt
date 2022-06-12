@@ -1,0 +1,111 @@
+project('bpx', ['c', 'cpp'], meson_version: '>=0.58.0', version: files('VERSION'), default_options : ['c_std=c11', 'cpp_std=c++17', 'werror=true'])
+
+# stop after 1 errors
+if meson.get_compiler('cpp').get_id() == 'gcc'
+    add_global_arguments(['-fmax-errors=1', '-Werror=unknown-pragmas'], language: 'cpp') 
+endif
+
+# define host os type for os-specific code.
+host_sys = host_machine.system()
+if host_sys == 'windows'
+  os = '_WINDOWS_'
+elif host_sys == 'linux'
+  os = '_LINUX_'
+elif host_sys == 'darwin'
+  os = '_MAC_'
+else
+  error('ERROR: os [' + host_sys + '] not supported!')
+endif
+
+add_global_arguments(['-D' + os ], language: 'cpp') 
+
+
+# let meson subproject (build-info) generates build information
+add_project_arguments(['-DHAVE_BUILD_INFO'], language: 'cpp')
+
+cpu = host_machine.cpu_family()
+
+if cpu == 'x86'
+  build = 32
+elif cpu == 'x86_64'
+  build = 64
+else
+  error('ERROR: cpu type ' + cpu + ' not supported!')
+endif
+
+message('DEBUG = ' + get_option('debug').to_string())
+message('BUILD =' + build.to_string())
+
+fs = import('fs')
+
+# where to install binaries for package
+install_dir = join_paths(meson.project_build_root(), 'install')
+
+# dependencies
+buildinfo_dep = dependency('build-info')
+
+tfm_dep = subproject('tinyformat').get_variable('tfm_dep')
+
+# protobuf
+pb_mod = subproject('protobuf', default_options: ['default_library=static', 'werror=false'])
+protobuf_dep = pb_mod.get_variable('protobuf_dep')
+protobuf_compiler = pb_mod.get_variable('protoc')
+
+
+thread_dep = dependency('threads')
+
+sqlite3_dep = dependency('sqlite3', version: '>=3.31.0')
+
+sqlite_modern_cpp_dep = dependency('sqlite-modern-cpp')
+
+event_dep = dependency('libevent')
+zmq_dep = dependency('libzmq')
+
+# The meson will search /usr/local/include/boost first.
+boost_dep = dependency('boost', version: '>=1.64.0', static: false, modules: ['filesystem', 'system', 'unit_test_framework'])
+
+univalue_dep = subproject('univalue').get_variable('univalue_dep')
+leveldb_dep = subproject('leveldb').get_variable('leveldb_dep')
+
+secp256k1_dep = subproject('secp256k1').get_variable('secp256k1_dep')
+#secp256k1_dep = dependency('libsecp256k1')
+
+crc32c_dep = subproject('crc32c').get_variable('crc32c_dep')
+
+miniupnpc_dep = dependency('miniupnpc')
+
+natpmp_dep = declare_dependency(link_args: ['-l:libnatpmp.a'])
+
+catch2_dep = dependency('catch2')
+catch2_ex_dep = dependency('catch2-ex')
+
+xputil_dep = dependency('xputil')
+
+# M-GSL
+gsl_dep = dependency('gsl')
+
+# dynamic lib loading.
+if host_machine.system() == 'windows'
+    dl_dep = declare_dependency() # dummy
+else
+    dl_dep = declare_dependency(link_args: ['-ldl'])
+endif
+
+cpp_httplib_dep = dependency('cpp_httplib')
+openssl_dep = dependency('openssl')
+
+dependencies = [
+    buildinfo_dep,
+    thread_dep,
+    univalue_dep,
+    leveldb_dep,
+    secp256k1_dep,
+    boost_dep,
+    sqlite3_dep,
+    tfm_dep,
+]
+
+subdir('src')
+
+# integration tests
+subdir('test')
