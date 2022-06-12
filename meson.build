@@ -63,7 +63,7 @@ subdir('compat')
 subdir('algo')
 
 srcs = [
-    'algo-gate-api.c', 'api.c', 'cpu-miner.c', 'malloc-huge.c', 'sysinfos.c', 'util.c',
+    'algo-gate-api.c', 'api.c', 'malloc-huge.c', 'sysinfos.c', 'util.c',
 ]
 
 
@@ -72,10 +72,15 @@ srcs += [
     'asm/sha2-x64.S', 'asm/scrypt-x64.S', 'asm/aesb-x64.S',
 ]
 
+dependencies = [jansson_dep, thread_dep, curl_dep, openssl_dep, math_dep, algos_dep, gmp_dep,]
 
-cpuminer = executable('cpuminer', srcs, 
-    dependencies: [
-        jansson_dep, thread_dep, curl_dep, openssl_dep, math_dep, algos_dep, gmp_dep,
-    ], 
+lib_miner = static_library('miner', srcs, dependencies: dependencies)
+miner_dep = declare_dependency(link_with: lib_miner, include_directories: '.')
+
+cpuminer = executable('cpuminer', ['cpu-miner.c'], 
+    dependencies: [dependencies, miner_dep], 
     install: true, install_dir: install_dir
 )
+
+# unit-tests
+subdir('tests')
